@@ -1,6 +1,7 @@
 import re
-import logging
+import operator
 import ast
+import logging
 
 
 VARIABLE_TOKEN_START = '{{'
@@ -20,6 +21,15 @@ CLOSE_BLOCK_FRAGMENT = 2
 TEXT_FRAGMENT = 3
 
 WHITESPACE = re.compile('\s+')
+
+OPERATOR_TABLE = {
+    '<': operator.lt,
+    '>': operator.gt,
+    '==': operator.eq,
+    '!=': operator.ne,
+    '<=': operator.le,
+    '>=': operator.ge
+}
 
 
 class TemplateError(Exception):
@@ -119,10 +129,6 @@ class Node:
         return ''.join(map(render_child, children))
 
 
-class ScopableNode(Node):
-    creates_scope = True
-
-
 class Root(Node):
     def render(self, context):
         return self.render_children(context)
@@ -136,20 +142,69 @@ class Variable(Node):
         return resolve(self.name, context)
 
 
-class Array(ScopableNode):
+class Array(Node):
+    creates_scope = True
+
     def process_fragment(self, fragment):
         try:
-            _, it = WHITESPACE.split(fragment, 1)
-            self.it = eval_expression(it)
+            _, item = WHITESPACE.split(fragment, 1)
+            self.item = eval_expression(item)
         except ValueError:
             raise TemplateSyntaxError(fragment)
 
     def render(self, context):
-        items = self.it[1] if self.it[0] == 'literal' else resolve(self.it[1], context)
+        items = self.item[1] if self.item[0] == 'literal' else resolve(self.item[1], context)
 
         def render_item(item):
-            return self.render_children({'..': context, 'it': item})
+            return self.render_children({'..': context, 'item': item})
         return ''.join(map(render_item, items))
+
+
+class If(Node):
+    creates_scope = True
+
+    def process_fragment(self, fragment):
+        bits = fragment.split()[1:]
+        if len(bits) not in (1, 3):
+            raise TemplateSyntaxError(fragment)
+        self.lhs = eval_expression(bits[0])
+        if len(bits) == 3:
+            self.op = bits[1]
+            self.rhs = eval_expression(bits[2])
+
+    def render(self, context):
+        lhs = self.resolve_side(self.lhs, context)
+        if hasattr(self, 'op'):
+            op = OPERATOR_TABLE.get(self.op)
+            if op is None:
+                raise TemplateSyntaxError(self.op)
+            rhs = self.resolve_side(self.rhs, context)
+            exec_if_branch = op(lhs, rhs)
+        else:
+            exec_if_branch = operator.truth(lhs)
+        if_branch, else_branch = self.split_children()
+        return self.render_children(context, self.if_branch if exec_if_branch else self.else_branch)
+
+    def resolve_side(self, side, context):
+        return side[1] if side[0] == 'literal' else resolve(side[1], context)
+
+    def exit_scope(self):
+        self.if_branch, self.else_branch = self.split_children()
+
+    def split_children(self):
+        if_branch, else_branch = [], []
+        curr = if_branch
+        for child in self.children:
+            if isinstance(child, Else):
+                curr = else_branch
+                continue
+            curr.append(child)
+        return if_branch, else_branch
+
+
+class Else(Node):
+    def render(self, context):
+        pass
 
 
 class Text(Node):
@@ -199,6 +254,10 @@ class Compiler:
             cmd = fragment.clean.split()[0]
             if cmd == 'array':
                 node_class = Array
+            elif cmd == 'if':
+                node_class = If
+            elif cmd == 'else':
+                node_class = Else
         if node_class is None:
             raise TemplateSyntaxError(fragment)
         return node_class(fragment.clean)
