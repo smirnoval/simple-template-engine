@@ -271,3 +271,13 @@ class Template:
 
     def render(self, **kwargs):
         return self.root.render(kwargs)
+
+
+class Consumer:
+
+    def __init__(self, filename):
+        with open(filename, 'r') as file:
+            self.file = str(file.read())
+
+    def __str__(self):
+        return self.file

@@ -1,5 +1,6 @@
 import unittest
 from base import Template
+from base import Consumer
 
 
 class VariableTests(unittest.TestCase):
@@ -50,6 +51,17 @@ class IfTests(unittest.TestCase):
         rendered = Template('{% if num > 1 %}<div>more than 1</div>{% else %}<div>less or equal to 1</div>{% end %}').render(num=0)
         self.assertEqual(rendered, '<div>less or equal to 1</div>')
 
+
+class ConsumerTests(unittest.TestCase):
+
+    def test_open_file(self):
+        test_file = Consumer('test.html')
+        self.assertEqual(str(test_file), '<div>{{name}}</div>')
+
+    def test_render_opened_file(self):
+        test_file = Consumer('test.html')
+        rendered = Template(str(test_file)).render(name='alex')
+        self.assertEqual(str(rendered), '<div>alex</div>')
 
 if __name__ == '__main__':
     unittest.main()
