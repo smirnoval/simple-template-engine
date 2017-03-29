@@ -20,29 +20,36 @@ class VariableTests(unittest.TestCase):
 class ArrayTests(unittest.TestCase):
 
     def test_array_iterable_in_context(self):
-        rendered = Template('{% array items %}<div>{{it}}</div>{% end %}').render(items=['alex', 'fedor'])
+        rendered = Template('{% array items %}<div>{{item}}</div>{% end %}').render(items=['alex', 'fedor'])
         self.assertEqual(rendered, '<div>alex</div><div>fedor</div>')
 
-    def test_array_iterable_as_literal_list(self):
-        rendered = Template('{% array [1, 2, 3] %}<div>{{it}}</div>{% end %}').render()
+    def test_array_iterable(self):
+        rendered = Template('{% array [1, 2, 3] %}<div>{{item}}</div>{% end %}').render()
         self.assertEqual(rendered, '<div>1</div><div>2</div><div>3</div>')
 
     def test_array_parent_context(self):
-        rendered = Template('{% array [1, 2, 3] %}<div>{{..name}}-{{it}}</div>{% end %}').render(name='jon doe')
-        self.assertEqual(rendered, '<div>jon doe-1</div><div>jon doe-2</div><div>jon doe-3</div>')
+        rendered = Template('{% array [1, 2, 3] %}<div>{{..name}}-{{item}}</div>{% end %}').render(name='word')
+        self.assertEqual(rendered, '<div>word-1</div><div>word-2</div><div>word-3</div>')
 
-    def test_array_space_issues(self):
-        rendered = Template('{% array [1,2, 3]%}<div>{{it}}</div>{%end%}').render()
-        self.assertEqual(rendered, '<div>1</div><div>2</div><div>3</div>')
 
-    def test_array_no_tags_inside(self):
-        rendered = Template('{% array [1,2,3] %}<br>{% end %}').render()
-        self.assertEqual(rendered, '<br><br><br>')
+class IfTests(unittest.TestCase):
 
-    def test_nested_objects(self):
-        context = {'lines': [{'name': 'l1'}], 'name': 'p1'}
-        rendered = Template('<h1>{{name}}</h1>{% array lines %}<span class="{{..name}}-{{it.name}}">{{it.name}}</span>{% end %}').render(**context)
-        self.assertEqual(rendered, '<h1>p1</h1><span class="p1-l1">l1</span>')
+    def test_if_is_true(self):
+        rendered = Template('{% if num > 1 %}<div>more than 1</div>{% end %}').render(num=2)
+        self.assertEqual(rendered, '<div>more than 1</div>')
+
+    def test_if_is_false(self):
+        rendered = Template('{% if num > 1 %}<div>more than 1</div>{% end %}').render(num=0)
+        self.assertEqual(rendered, '')
+
+    def test_if_else_if_is_true(self):
+        rendered = Template('{% if num > 1 %}<div>more than 1</div>{% else %}<div>less than 1</div>{% end %}').render(num=2)
+        self.assertEqual(rendered, '<div>more than 1</div>')
+
+    def test_if_else_if_is_false(self):
+        rendered = Template('{% if num > 1 %}<div>more than 1</div>{% else %}<div>less or equal to 1</div>{% end %}').render(num=0)
+        self.assertEqual(rendered, '<div>less or equal to 1</div>')
+
 
 if __name__ == '__main__':
     unittest.main()
