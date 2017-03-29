@@ -1,6 +1,5 @@
 import unittest
-from base import Template
-from base import Consumer
+from base import Template, Collector
 
 
 class VariableTests(unittest.TestCase):
@@ -52,16 +51,40 @@ class IfTests(unittest.TestCase):
         self.assertEqual(rendered, '<div>less or equal to 1</div>')
 
 
-class ConsumerTests(unittest.TestCase):
+class CollectorTests(unittest.TestCase):
 
     def test_open_file(self):
-        test_file = Consumer('test.html')
+        test_file = Collector('test.html')
         self.assertEqual(str(test_file), '<div>{{name}}</div>')
 
     def test_render_opened_file(self):
-        test_file = Consumer('test.html')
+        test_file = Collector('test.html')
         rendered = Template(str(test_file)).render(name='alex')
         self.assertEqual(str(rendered), '<div>alex</div>')
+
+    def test_collect_child_and_parent(self):
+        child_collector = Collector('child.html')
+        rendered = child_collector.make_page(name='alex', variable="value")
+        test_value = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title> alex amazing blog
+My amazing blog2 </title>
+</head>
+
+<body>
+    <div id="sidebar">
+        <h1>Sidebar</h1>
+    </div>
+    <div id="plain_div">
+        <h2>Another div with value</h2>
+    </div>
+    <div id="content">
+        <h1>Content</h1>
+    </div>
+</body>
+</html>"""
+        self.assertEqual(str(rendered), test_value)
 
 if __name__ == '__main__':
     unittest.main()

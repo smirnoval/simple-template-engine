@@ -273,11 +273,66 @@ class Template:
         return self.root.render(kwargs)
 
 
-class Consumer:
+PAGE_TOKEN_START = '{!'
+PAGE_TOKEN_END = '!}'
+PAGE_BLOCK_START = '{?'
+PAGE_BLOCK_END = '?}'
+PAGE_REGEX = re.compile(r"(%s.*?%s)" % (
+    PAGE_TOKEN_START,
+    PAGE_TOKEN_END
+))
 
-    def __init__(self, filename):
-        with open(filename, 'r') as file:
+PAGE_BLOCKS_REGEX = re.compile(r"({\?.*?\?})")
+
+
+class Collector:
+
+    def __init__(self, pagename):
+        self.pagename = pagename
+        with open(self.pagename, 'r') as file:
             self.file = str(file.read())
 
     def __str__(self):
         return self.file
+
+    def make_page(self, **kwargs):
+        components = [x.strip() for x in PAGE_REGEX.split(str(self.file)) if x]
+        parent_address = components[0][2:-2].strip().strip('"').strip("'")
+        blocks = [x for x in PAGE_BLOCKS_REGEX.split(components[1]) if x != '\n' and x != '']
+        dic = {}
+        cur = 'temp'
+        for i in blocks:
+            if i[:2] == '{?' and 'endblock' not in i:
+                cur = i[2:-2].strip()
+                dic[cur] = []
+            elif i[:2] == '{?' and 'endblock' in i:
+                cur = 'temp'
+            else:
+                dic[cur].append(i)
+        parent = self.find_parent(parent_address)
+        parent = self.find_blocks_for_substition(parent, dic)
+        parent = Template(str(parent)).render(**kwargs)
+        return parent
+
+    def find_parent(self, parent_name):
+        with open(parent_name, 'r') as file:
+            return str(file.read())
+
+    def find_blocks_for_substition(self, file, subs):
+        components = [x for x in PAGE_BLOCKS_REGEX.split(str(file)) if x]
+        dic = {}
+        cur = 'temp'
+        for i in range(len(components)):
+            if components[i][:2] == '{?' and 'endblock' not in components[i]:
+                cur = components[i][2:-2].strip()
+                dic[cur] = i
+                components[i] = ''
+            elif components[i][:2] == '{?' and 'endblock' in components[i]:
+                components[i] = ''
+                cur = 'temp'
+            elif cur != 'temp':
+                components[i] = ''
+        for i in subs.keys():
+            if i in dic.keys():
+                components[dic[i]] = "".join(subs[i])
+        return "".join(components)
