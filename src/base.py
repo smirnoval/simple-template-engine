@@ -7,7 +7,6 @@ VARIABLE_TOKEN_START = '{{'
 VARIABLE_TOKEN_END = '}}'
 BLOCK_TOKEN_START = '{%'
 BLOCK_TOKEN_END = '%}'
-
 TOKEN_REGEX = re.compile(r"(%s.*?%s|%s.*?%s)" % (
     VARIABLE_TOKEN_START,
     VARIABLE_TOKEN_END,
@@ -70,7 +69,7 @@ def resolve(name, context):
         raise TemplateContextError(name)
 
 
-class _Fragment(object):
+class Fragment:
     def __init__(self, raw_text):
         self.raw = raw_text
         self.clean = self.clean_fragment()
@@ -91,7 +90,7 @@ class _Fragment(object):
             return TEXT_FRAGMENT
 
 
-class _Node(object):
+class Node:
     creates_scope = False
 
     def __init__(self, fragment=None):
@@ -120,16 +119,16 @@ class _Node(object):
         return ''.join(map(render_child, children))
 
 
-class _ScopableNode(_Node):
+class ScopableNode(Node):
     creates_scope = True
 
 
-class _Root(_Node):
+class Root(Node):
     def render(self, context):
         return self.render_children(context)
 
 
-class _Variable(_Node):
+class Variable(Node):
     def process_fragment(self, fragment):
         self.name = fragment
 
@@ -137,7 +136,7 @@ class _Variable(_Node):
         return resolve(self.name, context)
 
 
-class _Each(_ScopableNode):
+class Array(ScopableNode):
     def process_fragment(self, fragment):
         try:
             _, it = WHITESPACE.split(fragment, 1)
@@ -153,7 +152,7 @@ class _Each(_ScopableNode):
         return ''.join(map(render_item, items))
 
 
-class _Text(_Node):
+class Text(Node):
     def process_fragment(self, fragment):
         self.text = fragment
 
@@ -161,7 +160,7 @@ class _Text(_Node):
         return self.text
 
 
-class Compiler(object):
+class Compiler:
 
     def __init__(self, template_string):
         self.template_string = template_string
@@ -169,10 +168,10 @@ class Compiler(object):
     def each_fragment(self):
         for fragment in TOKEN_REGEX.split(self.template_string):
             if fragment:
-                yield _Fragment(fragment)
+                yield Fragment(fragment)
 
     def compile(self):
-        root = _Root()
+        root = Root()
         scope_stack = [root]
         for fragment in self.each_fragment():
             if not scope_stack:
@@ -193,19 +192,19 @@ class Compiler(object):
     def create_node(self, fragment):
         node_class = None
         if fragment.type == TEXT_FRAGMENT:
-            node_class = _Text
+            node_class = Text
         elif fragment.type == VARIABLE_FRAGMENT:
-            node_class = _Variable
+            node_class = Variable
         elif fragment.type == OPEN_BLOCK_FRAGMENT:
             cmd = fragment.clean.split()[0]
-            if cmd == 'each':
-                node_class = _Each
+            if cmd == 'array':
+                node_class = Array
         if node_class is None:
             raise TemplateSyntaxError(fragment)
         return node_class(fragment.clean)
 
 
-class Template(object):
+class Template:
 
     def __init__(self, contents):
         self.contents = contents
