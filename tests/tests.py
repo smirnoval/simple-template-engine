@@ -95,15 +95,5 @@ My amazing blog2 </title>
         self.assertEqual(str(test_file), test_value)
 
 
-
-def suite():
-    suite = unittest.TestSuite()
-    suite.addTest(unittest.makeSuite(VariableTests))
-    suite.addTest(unittest.makeSuite(ArrayTests))
-    suite.addTest(unittest.makeSuite(IfTests))
-    suite.addTest(unittest.makeSuite(CollectorTests))
-    return suite
-
-
 if __name__ == '__main__':
     unittest.main()
