@@ -1,5 +1,8 @@
 import unittest
 from src.base import Template, Collector
+import os.path
+
+path_for_testing_dir = os.path.abspath(os.path.dirname(__file__))
 
 
 class VariableTests(unittest.TestCase):
@@ -54,15 +57,15 @@ class IfTests(unittest.TestCase):
 class CollectorTests(unittest.TestCase):
 
     def test_open_file(self):
-        test_file = Collector('single_page.html')
+        test_file = Collector(path_for_testing_dir, "/single_page.html")
         self.assertEqual(str(test_file), '<div>{{name}}</div>')
 
     def test_render_opened_file(self):
-        test_file = Collector('single_page.html').assemble_page(name='alex')
+        test_file = Collector(path_for_testing_dir, "/single_page.html").assemble_page(name='alex')
         self.assertEqual(str(test_file), '<div>alex</div>')
 
     def test_collect_child_and_parent(self):
-        test_file = Collector('basic_inheritance/child.html').assemble_page(name='alex', variable="value")
+        test_file = Collector(path_for_testing_dir, "/basic_inheritance/child.html").assemble_page(name='alex', variable="value")
         test_value = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,16 +87,23 @@ My amazing blog2 </title>
 </html>"""
         self.assertEqual(str(test_file), test_value)
 
-    def test_collect_child_and_parent(self):
-        test_file = Collector("few_nested_templates/test3.html").assemble_page()
+    def test_collect_few_nested_templates(self):
+        test_file = Collector(path_for_testing_dir, "/few_nested_templates/test3.html").assemble_page()
         test_value = """ amazing blog 
 
-	<h1>Content</h1>
-	<h1>Sidebar</h1>
+    <h1>Content</h1>
+    <h1>Sidebar</h1>
 
 """
         self.assertEqual(str(test_file), test_value)
 
+def suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(VariableTests))
+    suite.addTest(unittest.makeSuite(ArrayTests))
+    suite.addTest(unittest.makeSuite(IfTests))
+    suite.addTest(unittest.makeSuite(CollectorTests))
+    return suite
 
 if __name__ == '__main__':
     unittest.main()

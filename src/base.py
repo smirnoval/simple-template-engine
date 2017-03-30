@@ -4,6 +4,18 @@ import ast
 import logging
 
 
+PAGE_TOKEN_START = '{!'
+PAGE_TOKEN_END = '!}'
+PAGE_REGEX = re.compile(r"(%s.*?%s)" % (
+    PAGE_TOKEN_START,
+    PAGE_TOKEN_END
+))
+
+PAGE_BLOCK_START = '{?'
+PAGE_BLOCK_END = '?}'
+PAGE_BLOCKS_REGEX = re.compile(r"({\?.*?\?})")
+
+
 VARIABLE_TOKEN_START = '{{'
 VARIABLE_TOKEN_END = '}}'
 BLOCK_TOKEN_START = '{%'
@@ -277,23 +289,12 @@ class Template:
         return self.root.render(kwargs)
 
 
-PAGE_TOKEN_START = '{!'
-PAGE_TOKEN_END = '!}'
-PAGE_BLOCK_START = '{?'
-PAGE_BLOCK_END = '?}'
-PAGE_REGEX = re.compile(r"(%s.*?%s)" % (
-    PAGE_TOKEN_START,
-    PAGE_TOKEN_END
-))
-
-PAGE_BLOCKS_REGEX = re.compile(r"({\?.*?\?})")
-
-
 class Collector:
 
-    def __init__(self, pagename):
+    def __init__(self, absolute_path, pagename):
+        self.path = absolute_path
         self.pagename = pagename
-        with open(self.pagename, 'r') as file:
+        with open(self.path + self.pagename, 'r') as file:
             self.file = str(file.read())
 
     def __str__(self):
@@ -303,7 +304,6 @@ class Collector:
         self.prepare_page()
         rendered = Template(str(self.file)).render(**kwargs)
         return rendered
-
 
     def prepare_page(self, previous_blocks=None):
         if previous_blocks is not None:
@@ -356,11 +356,9 @@ class Collector:
         return "".join(components)
 
     def find_parent_data(self, parent_name):
-        with open(parent_name, 'r') as file:
+        with open(self.path + '/' + parent_name, 'r') as file:
             return str(file.read())
 
 
 if __name__ == '__main__':
-    child_collector = Collector('test3.html')
-    test = child_collector.assemble_page()
-    print(test)
+    print("Test")
