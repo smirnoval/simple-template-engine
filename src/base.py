@@ -73,7 +73,11 @@ def resolve(name, context):
         name = name[2:]
     try:
         for tok in name.split('.'):
-            context = context[tok]
+            if tok in context.keys():
+                context = context[tok]
+            else:
+                logging.warning('Template Context Error! Token not found!')
+                context = ''
         return context
     except KeyError:
         raise TemplateContextError(name)
@@ -295,44 +299,68 @@ class Collector:
     def __str__(self):
         return self.file
 
-    def make_page(self, **kwargs):
+    def assemble_page(self, **kwargs):
+        self.prepare_page()
+        rendered = Template(str(self.file)).render(**kwargs)
+        return rendered
+
+
+    def prepare_page(self, previous_blocks=None):
+        if previous_blocks is not None:
+            self.file = self.find_blocks_for_substition(previous_blocks)
         components = [x.strip() for x in PAGE_REGEX.split(str(self.file)) if x]
-        parent_address = components[0][2:-2].strip().strip('"').strip("'")
-        blocks = [x for x in PAGE_BLOCKS_REGEX.split(components[1]) if x != '\n' and x != '']
-        dic = {}
-        cur = 'temp'
-        for i in blocks:
-            if i[:2] == '{?' and 'endblock' not in i:
-                cur = i[2:-2].strip()
-                dic[cur] = []
-            elif i[:2] == '{?' and 'endblock' in i:
-                cur = 'temp'
-            else:
-                dic[cur].append(i)
-        parent = self.find_parent(parent_address)
-        parent = self.find_blocks_for_substition(parent, dic)
-        parent = Template(str(parent)).render(**kwargs)
-        return parent
+        if len(components) == 1:
+            return
+        elif len(components) == 2:
+            parent_address = components[0][2:-2].strip().strip('"').strip("'")
+            blocks = self.find_blocks(components[1])
+            self.file = self.find_parent_data(parent_address)
+            self.prepare_page(blocks)
+        else:
+            logging.warning("Multiple inheritance")
+            raise Exception
 
-    def find_parent(self, parent_name):
-        with open(parent_name, 'r') as file:
-            return str(file.read())
-
-    def find_blocks_for_substition(self, file, subs):
-        components = [x for x in PAGE_BLOCKS_REGEX.split(str(file)) if x]
+    def find_blocks(self, raw_blocks):
+        blocks = [x for x in PAGE_BLOCKS_REGEX.split(raw_blocks) if x]
+        stack = []
         dic = {}
-        cur = 'temp'
+        for i in range(len(blocks)):
+            if blocks[i][:2] == '{?' and 'endblock' not in blocks[i]:
+                cur = blocks[i][2:-2].strip()
+                stack.append([cur, i])
+            elif blocks[i][:2] == '{?' and 'endblock' in blocks[i]:
+                if len(stack) == 0:
+                    raise Exception
+                start = stack.pop()
+                dic[start[0]] = [blocks[x] for x in range(start[1]+1, i)]
+        return dic
+
+    def find_blocks_for_substition(self, subs):
+        components = [x for x in PAGE_BLOCKS_REGEX.split(str(self.file)) if x]
+        stack = []
+        dic = {}
         for i in range(len(components)):
             if components[i][:2] == '{?' and 'endblock' not in components[i]:
                 cur = components[i][2:-2].strip()
-                dic[cur] = i
-                components[i] = ''
+                stack.append([cur, i])
             elif components[i][:2] == '{?' and 'endblock' in components[i]:
-                components[i] = ''
-                cur = 'temp'
-            elif cur != 'temp':
-                components[i] = ''
-        for i in subs.keys():
-            if i in dic.keys():
-                components[dic[i]] = "".join(subs[i])
+                if len(stack) == 0:
+                    raise Exception
+                start = stack.pop()
+                dic[start[0]] = list(range(start[1], i + 1))
+        for i in dic.keys():
+            if i in subs.keys():
+                for j in dic[i]:
+                    components[j] = ''
+                components[dic[i][0]] = "".join(subs[i])
         return "".join(components)
+
+    def find_parent_data(self, parent_name):
+        with open(parent_name, 'r') as file:
+            return str(file.read())
+
+
+if __name__ == '__main__':
+    child_collector = Collector('test3.html')
+    test = child_collector.assemble_page()
+    print(test)
