@@ -2,7 +2,7 @@
 
 Simple template engine
 
-https://travis-ci.org/smirnoval/simple-template-engine.svg?branch=master
+![alt tag](https://travis-ci.org/smirnoval/simple-template-engine.svg?branch=master)
 
 ### Inheritance
 
