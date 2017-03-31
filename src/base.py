@@ -1,7 +1,8 @@
 import re
 import operator
 import ast
-import logging
+from src.exceptions import TemplateContextError, TemplateSyntaxError
+from src.exceptions import TemplateInheritanceError, TemplateLoopInheritanceError
 
 
 PAGE_TOKEN_START = '{!'
@@ -44,34 +45,6 @@ OPERATOR_TABLE = {
 }
 
 
-class TemplateError(Exception):
-
-    def __init__(self):
-        logging.warning('Template error!')
-
-
-class TemplateContextError(TemplateError):
-
-    def __init__(self, context):
-        super().__init__()
-        self.context = context
-        logging.warning('Template context error!')
-
-    def __str__(self):
-        return 'Cannot resolve {0}'.format(self.context_var)
-
-
-class TemplateSyntaxError(TemplateError):
-
-    def __init(self, syntax_error):
-        super().__init__()
-        self.syntax_error = syntax_error
-        logging.warning('Template syntax error!')
-
-    def __str__(self):
-        return 'Invalid syntax {0}'.format(self.syntax_error)
-
-
 def eval_expression(expr):
     try:
         return 'literal', ast.literal_eval(expr)
@@ -88,7 +61,6 @@ def resolve(name, context):
             if tok in context.keys():
                 context = context[tok]
             else:
-                logging.warning('Template Context Error! Token not found!')
                 context = ''
         return context
     except KeyError:
@@ -294,6 +266,7 @@ class Collector:
     def __init__(self, absolute_path, pagename):
         self.path = absolute_path
         self.pagename = pagename
+        self.collected_page = [pagename]
         with open(self.path + self.pagename, 'r') as file:
             self.file = str(file.read())
 
@@ -313,12 +286,15 @@ class Collector:
             return
         elif len(components) == 2:
             parent_address = components[0][2:-2].strip().strip('"').strip("'")
+            if parent_address not in self.collected_page:
+                self.collected_page.append(parent_address)
+            else:
+                raise TemplateLoopInheritanceError
             blocks = self.find_blocks(components[1])
             self.file = self.find_parent_data(parent_address)
             self.prepare_page(blocks)
         else:
-            logging.warning("Multiple inheritance")
-            raise Exception
+            raise TemplateInheritanceError
 
     def find_blocks(self, raw_blocks):
         blocks = [x for x in PAGE_BLOCKS_REGEX.split(raw_blocks) if x]
@@ -330,9 +306,9 @@ class Collector:
                 stack.append([cur, i])
             elif blocks[i][:2] == '{?' and 'endblock' in blocks[i]:
                 if len(stack) == 0:
-                    raise Exception
+                    raise TemplateSyntaxError
                 start = stack.pop()
-                dic[start[0]] = [blocks[x] for x in range(start[1]+1, i)]
+                dic[start[0]] = [blocks[x] for x in range(start[1] + 1, i)]
         return dic
 
     def find_blocks_for_substition(self, subs):
@@ -345,7 +321,7 @@ class Collector:
                 stack.append([cur, i])
             elif components[i][:2] == '{?' and 'endblock' in components[i]:
                 if len(stack) == 0:
-                    raise Exception
+                    raise TemplateSyntaxError
                 start = stack.pop()
                 dic[start[0]] = list(range(start[1], i + 1))
         for i in dic.keys():
@@ -358,7 +334,3 @@ class Collector:
     def find_parent_data(self, parent_name):
         with open(self.path + '/' + parent_name, 'r') as file:
             return str(file.read())
-
-
-if __name__ == '__main__':
-    print("Test")
