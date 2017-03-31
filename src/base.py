@@ -1,3 +1,4 @@
+"""Simple template engine."""
 import re
 import operator
 import ast
@@ -46,6 +47,7 @@ OPERATOR_TABLE = {
 
 
 def eval_expression(expr):
+    """Check if expression is Python expression."""
     try:
         return 'literal', ast.literal_eval(expr)
     except (ValueError, SyntaxError):
@@ -53,6 +55,7 @@ def eval_expression(expr):
 
 
 def resolve(name, context):
+    """Resolve syntax substintion."""
     if name.startswith('..'):
         context = context.get('..', {})
         name = name[2:]
@@ -68,17 +71,21 @@ def resolve(name, context):
 
 
 class Fragment:
+    """Fragment of template which used for definition of tokens."""
+
     def __init__(self, raw_text):
         self.raw = raw_text
         self.clean = self.clean_fragment()
 
     def clean_fragment(self):
+        """Delete trash from fragment."""
         if self.raw[:2] in (VARIABLE_TOKEN_START, BLOCK_TOKEN_START):
             return self.raw[2:-2].strip()
         return self.raw
 
     @property
     def type(self):
+        """Determine the type of the fragment."""
         raw_start = self.raw[:2]
         if raw_start == VARIABLE_TOKEN_START:
             return VARIABLE_FRAGMENT
@@ -89,6 +96,8 @@ class Fragment:
 
 
 class Node:
+    """Element of tree."""
+
     creates_scope = False
 
     def __init__(self, fragment=None):
@@ -108,6 +117,7 @@ class Node:
         pass
 
     def render_children(self, context, children=None):
+        """Render contex info into html."""
         if children is None:
             children = self.children
 
@@ -118,11 +128,16 @@ class Node:
 
 
 class Root(Node):
+    """Root of tree."""
+
     def render(self, context):
+        """Start render of elements."""
         return self.render_children(context)
 
 
 class Variable(Node):
+    """Python-like variables."""
+
     def process_fragment(self, fragment):
         self.name = fragment
 
@@ -131,6 +146,8 @@ class Variable(Node):
 
 
 class Array(Node):
+    """Array of elements."""
+
     creates_scope = True
 
     def process_fragment(self, fragment):
@@ -149,6 +166,7 @@ class Array(Node):
 
 
 class If(Node):
+    """'If' instruction."""
     creates_scope = True
 
     def process_fragment(self, fragment):
@@ -191,11 +209,15 @@ class If(Node):
 
 
 class Else(Node):
+    """'Else' instruction."""
+
     def render(self, context):
         pass
 
 
 class Text(Node):
+    """All what not instruction."""
+
     def process_fragment(self, fragment):
         self.text = fragment
 
@@ -204,6 +226,7 @@ class Text(Node):
 
 
 class Compiler:
+    """Find, process and compile all instructions in template."""
 
     def __init__(self, template_string):
         self.template_string = template_string
@@ -262,6 +285,7 @@ class Template:
 
 
 class Collector:
+    """Collect all nested templates, then tranmit them to Template."""
 
     def __init__(self, absolute_path, pagename):
         self.path = absolute_path

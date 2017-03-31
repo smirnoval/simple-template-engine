@@ -1,13 +1,16 @@
+"""Exceptions of 'simple-template-engine'."""
 import logging
 
 
 class TemplateError(Exception):
+    """Main template error."""
 
     def __init__(self):
         logging.warning('Template error!')
 
 
 class TemplateContextError(TemplateError):
+    """Wrong context, not given context instructions."""
 
     def __init__(self, context):
         super().__init__()
@@ -19,6 +22,7 @@ class TemplateContextError(TemplateError):
 
 
 class TemplateSyntaxError(TemplateError):
+    """Wrong syntax."""
 
     def __init(self, syntax_error):
         super().__init__()
@@ -30,6 +34,7 @@ class TemplateSyntaxError(TemplateError):
 
 
 class TemplateInheritanceError(TemplateError):
+    """Multiple inheritance."""
 
     def __init(self, inheritance_error):
         super().__init__()
@@ -41,6 +46,7 @@ class TemplateInheritanceError(TemplateError):
 
 
 class TemplateLoopInheritanceError(TemplateError):
+    """Inheritance loop."""
 
     def __init(self, loop_error):
         super().__init__()
