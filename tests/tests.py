@@ -1,5 +1,6 @@
 import unittest
 from src.base import Template, Collector
+from src.exceptions import TemplateInheritanceError, TemplateLoopInheritanceError
 import os.path
 
 path_for_testing_dir = os.path.abspath(os.path.dirname(__file__))
@@ -96,6 +97,24 @@ My amazing blog2 </title>
 
 """
         self.assertEqual(str(test_file), test_value)
+
+    def test_loop_inherirance(self):
+        try:
+            test_file = Collector(path_for_testing_dir, "/loop/loop2.html").assemble_page()
+        except TemplateLoopInheritanceError:
+            self.assertEquals(True, True)
+
+    def test_self_loop(self):
+        try:
+            test_file = Collector(path_for_testing_dir, "/loop/self_loop.html").assemble_page()
+        except TemplateLoopInheritanceError:
+            self.assertEquals(True, True)
+
+    def test_multiple_inheritance(self):
+        try:
+            test_file = Collector(path_for_testing_dir, "/multiple_inheritance/mult_inher.html").assemble_page()
+        except TemplateInheritanceError:
+            self.assertEquals(True, True)
 
 def suite():
     suite = unittest.TestSuite()
