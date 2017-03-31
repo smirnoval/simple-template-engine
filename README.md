@@ -2,6 +2,8 @@
 
 Simple template engine
 
+https://travis-ci.org/smirnoval/simple-template-engine.svg?branch=master
+
 ### Inheritance
 
 base.html
