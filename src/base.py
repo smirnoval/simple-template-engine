@@ -2,6 +2,7 @@
 import re
 import operator
 import ast
+from src.exceptions import TemplateError
 from src.exceptions import TemplateContextError, TemplateSyntaxError
 from src.exceptions import TemplateInheritanceError, TemplateLoopInheritanceError
 
@@ -167,6 +168,7 @@ class Array(Node):
 
 class If(Node):
     """'If' instruction."""
+
     creates_scope = True
 
     def process_fragment(self, fragment):
