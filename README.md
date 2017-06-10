@@ -4,7 +4,8 @@ Simple template engine
 
 ![alt tag](https://travis-ci.org/smirnoval/simple-template-engine.svg?branch=master)
 
-### Inheritance
+
+### Straight inheritance
 
 base.html
 ```html
@@ -50,6 +51,111 @@ result
     <h1>Content</h1>
     </div>
 </body>
+</html>
+```
+
+
+### "Include" inheritance
+
+base.html
+```html
+<!DOCTYPE html>
+<html>
+{# header.html #}
+<body>
+  <h1>Welcome!</h1>
+</body>
+{# footer.html #}
+</html>
+```
+
+header.html
+```html
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+```
+
+footer.html
+```html
+<footer>
+   <p><strong>Just example of footer</strong></p>
+</footer>
+```
+
+result
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+<body>
+  <h1>Welcome!</h1>
+</body>
+<footer>
+   <p><strong>Just example of footer</strong></p>
+</footer>
+</html>
+```
+
+
+### Combined inheritance
+
+base.html
+```html
+{! "index.html" !}
+{? title ?}<h1>Amazing blog</h1>{? endblock ?}
+{? content ?}<h1>Content</h1>{? endblock ?}
+```
+
+index.html
+'''html
+<!DOCTYPE html>
+<html>
+{# header.html #}
+{? title ?}{? endblock ?}
+<body>
+    <h1>Welcome!</h1>
+    {? content ?}{? endblock ?}
+</body>
+{# footer.html #}
+</html>
+'''
+
+header.html
+```html
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+```
+
+footer.html
+```html
+<footer>
+   <p><strong>Just example of footer</strong></p>
+</footer>
+```
+
+result
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+<h1>Amazing blog</h1>
+<body>
+    <h1>Welcome!</h1>
+    <h1>Content</h1>
+</body>
+<footer>
+   <p><strong>Just example of footer</strong></p>
+</footer>
 </html>
 ```
 
