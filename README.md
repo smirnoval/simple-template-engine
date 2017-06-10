@@ -112,7 +112,7 @@ base.html
 ```
 
 index.html
-'''html
+```html
 <!DOCTYPE html>
 <html>
 {# header.html #}
@@ -123,7 +123,7 @@ index.html
 </body>
 {# footer.html #}
 </html>
-'''
+```
 
 header.html
 ```html
