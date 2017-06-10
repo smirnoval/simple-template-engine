@@ -116,6 +116,68 @@ My amazing blog2 </title>
         except TemplateInheritanceError:
             self.assertEquals(True, True)
 
+    def test_basic_include_tag(self):
+        test_file = Collector(path_for_testing_dir, "/basic_include/index.html").assemble_page()
+        test_value = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+<body>
+  <h1>Welcome!</h1>
+</body>
+<footer>
+   <p><strong>Just example of footer</strong></p>
+   <p>&copy; Alexander Smirnov</p>
+</footer>
+</html>"""
+        self.assertEqual(str(test_file), test_value)
+
+    def test_nested_inclide_tag(self):
+        test_file = Collector(path_for_testing_dir, "/nested_include/index.html").assemble_page()
+        test_value = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+    <div class="subfooter">
+    <h3>This is subheader</h3>
+</div>
+</head>
+<body>
+  <h1>Welcome!</h1>
+</body>
+<footer>
+   <p><strong>Just example of footer</strong></p>
+   <p>&copy; Alexander Smirnov</p>
+   <div class="subfooter">
+   <h3>This is subfooter</h3>
+</div>
+</footer>
+</html>"""
+        self.assertEqual(str(test_file), test_value)
+
+    def test_inheritance_and_include(self):
+        test_file = Collector(path_for_testing_dir, "/inheritance_and_include/base.html").assemble_page()
+        test_value = """<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Title of site</title>
+</head>
+<h1>Amazing blog</h1>
+<body>
+    <h1>Welcome!</h1>
+    <h1>Content</h1>
+</body>
+<footer>
+   <p><strong>Just example of footer</strong></p>
+   <p>&copy; Alexander Smirnov</p>
+</footer>
+</html>"""
+        self.assertEqual(str(test_file), test_value)
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(VariableTests))

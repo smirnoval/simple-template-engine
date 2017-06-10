@@ -7,6 +7,16 @@ from src.exceptions import TemplateContextError, TemplateSyntaxError
 from src.exceptions import TemplateInheritanceError, TemplateLoopInheritanceError
 
 
+def flatten(input_list):
+    output_list = []
+    for element in input_list:
+        if type(element) == list:
+            output_list.extend(flatten(element))
+        else:
+            output_list.append(element)
+    return output_list
+
+
 PAGE_TOKEN_START = '{!'
 PAGE_TOKEN_END = '!}'
 PAGE_REGEX = re.compile(r"(%s.*?%s)" % (
@@ -18,6 +28,12 @@ PAGE_BLOCK_START = '{?'
 PAGE_BLOCK_END = '?}'
 PAGE_BLOCKS_REGEX = re.compile(r"({\?.*?\?})")
 
+INCLUDE_TAG_START = '{#'
+INCLUDE_TAG_END = '#}'
+INCLUDE_TAGS_REGEX = re.compile(r"(%s.*?%s)" % (
+    INCLUDE_TAG_START,
+    INCLUDE_TAG_END
+))
 
 VARIABLE_TOKEN_START = '{{'
 VARIABLE_TOKEN_END = '}}'
@@ -287,7 +303,7 @@ class Template:
 
 
 class Collector:
-    """Collect all nested templates, then tranmit them to Template."""
+    """Collect all nested templates, then transmit them to Template."""
 
     def __init__(self, absolute_path, pagename):
         self.path = absolute_path
@@ -301,8 +317,29 @@ class Collector:
 
     def assemble_page(self, **kwargs):
         self.prepare_page()
+        self.file = self.prepare_include_tags()
         rendered = Template(str(self.file)).render(**kwargs)
         return rendered
+
+    def prepare_include_tags(self, text=None):
+        if text:
+            include_tags = [x for x in INCLUDE_TAGS_REGEX.split(text) if x]
+        else:
+            include_tags = [x for x in INCLUDE_TAGS_REGEX.split(self.file) if x]
+        if len(include_tags) == 1 and text is None:
+            return ''.join(flatten(include_tags))
+        elif len(include_tags) == 1:
+            return include_tags
+        tags = []
+        for i in range(len(include_tags)):
+            if include_tags[i][:2] == "{#" and include_tags[i][-2:] == "#}":
+                cur = include_tags[i][2:-2].strip()
+                tags.append([cur, i])
+        for i in range(len(tags)):
+            text = self.find_parent_data(tags[i][0])
+            res = self.prepare_include_tags(text)
+            include_tags[tags[i][1]] = res
+        return ''.join(flatten(include_tags))
 
     def prepare_page(self, previous_blocks=None):
         if previous_blocks is not None:
@@ -360,3 +397,7 @@ class Collector:
     def find_parent_data(self, parent_name):
         with open(self.path + '/' + parent_name, 'r') as file:
             return str(file.read())
+
+
+if __name__ == "__main__":
+    print("Base.py")
